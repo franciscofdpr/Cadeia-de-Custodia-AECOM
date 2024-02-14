@@ -1,0 +1,427 @@
+---
+title: "Cadeia de Custódia - `r params$amostra` "
+author: "Informações do Projeto – Eixo 6 – Segurança do Alimento"
+format:
+  pdf:
+    papersize: A3
+    latex_engine: tinytex
+    classoption: landscape
+execute:
+  echo: false
+  df-print: kable
+editor: visual
+params:
+  amostra: amostra
+geometry: "a3paper,left = 1.5cm, right = 1.5cm, top=2cm, bottom=4cm, landscape"
+header-includes:
+  - \usepackage{booktabs}
+  - \usepackage{longtable}
+  - \usepackage{array}
+  - \usepackage{multirow}
+  - \usepackage{wrapfig}
+  - \usepackage{float}
+  - \usepackage{colortbl}
+  - \usepackage{tabu}
+  - \usepackage{threeparttable}
+  - \usepackage{threeparttablex}
+  - \usepackage[normalem]{ulem}
+  - \usepackage{makecell}
+  - \usepackage{xcolor}
+  - \usepackage{fancyhdr}
+  - \usepackage{pdflscape}
+  - \usepackage{lastpage}
+  - \usepackage[labelformat = empty]{caption}
+  - \pagestyle{fancy}
+  - \fancyhf{}
+  - \fancyhead[LE,RO]{\thepage\ de \pageref{LastPage}}
+  - \fancyfoot[LE,LO]{Bloco1 - Al, Ba, B, Cu, Fe, Si, Zn, Sb, As, Be, Cd, Pb, Co, Cr, Sn, Li, Mn, Ni, Hg, Mo, Ag, Se, Tl, Ti, U, V, Bloco2 - Ca, S, P, Mg, K, Na, Bloco3 - Tolueno, etilbenzeno, diclorometano, Bloco4 - Aldrin, Endrin, Dieldrin, HCHtotal, HCHgama/lindano, PCBs, Bloco5 - 2,4,5-triclorofenol e 2,4,6-triclorofenol,Bloco6 - As, Hg e Cr total, Bloco7 - Cr (III), Cr (VI), Bloco8 - As (III), As (V), Ácido monometilarsônico, Ácido dimetilarsínico e Arsenobetaína, Bloco9 - Atrazina e Clorpirifós}
+  - \fancyfoot[C]{}
+  - \renewcommand{\footrulewidth}{0.25mm}
+---
+
+```{r carregando pacotes, include=FALSE}
+
+library(rmarkdown)
+library(openxlsx)
+library(tidyverse)
+library(knitr)
+library(kableExtra)
+library(rmarkdown)
+library(purrr)
+library(tinytex)
+library(pandoc)
+library(janitor)
+library(chron)
+
+```
+
+```{r dados, include=FALSE}
+
+# Não Carnes
+
+dados = dados
+
+
+```
+
+|                                                              |                                                          |
+|-------------------------------------|-----------------------------------|
+| Empresa contratante: AECOM                                   | Gestores responsáveis: Franciele Fedrizzi e Victor Silva |
+| Empresa responsável pela coleta e execução das análises: IPT | Gestor responsavel: Fernando Soares Lima                 |
+
+```{r tabelas, echo=FALSE}
+
+ponto = dados%>%
+  dplyr::filter(amostra == params$amostra)%>%
+  dplyr::select(ponto)%>%
+  dplyr::distinct()%>%
+  pull
+
+amostra = dados%>%
+  dplyr::filter(amostra == params$amostra)%>%
+  dplyr::select(amostra)%>%
+  dplyr::distinct()%>%
+  pull
+
+tipo = dados%>%
+  dplyr::filter(amostra == params$amostra)%>%
+  dplyr::select(tipo)%>%
+  dplyr::distinct()%>%
+  pull
+
+alimento = dados%>%
+  dplyr::filter(amostra == params$amostra)%>%
+  dplyr::select(nome_alimento)%>%
+  dplyr::distinct()%>%
+  pull
+
+grupo = dados%>%
+  dplyr::filter(amostra == params$amostra)%>%
+  dplyr::select(grupo)%>%
+  dplyr::distinct()%>%
+  pull
+
+tabela_1 = dados %>%
+  dplyr::filter(amostra == params$amostra,
+                custodia == "campo e coleta",
+                etapa %in% c("Coleta do(s) produto(s) agropecuário(s)", # Etapa 01
+                             "Transporte do(s) produto(s) agropecuário(s) para a base de apoio",# Etapa 02
+                             "Recebimento e armazenamento do(s) produto(s) agropecuário(s) na base de apoio",# Etapa03
+                             "Transporte do(s) produto(s) agropecuário(s) entre bases de apoio",# Etapa 04
+                             "Recebimento e armazenamento do(s) produto(s) agropecuário(s) entre bases de apoio"))%>% # Etapa 05
+  dplyr::select(etapa, alimento, data, hora, responsavel, assinatura, cod_equipamento_armazenamento, 
+                temperatura_min, temperatura_max,  temperatura_entrega_recebimento, outras_informacoes)%>%
+  dplyr::mutate(id="")%>%
+  dplyr::mutate(id = ifelse(etapa == "Coleta do(s) produto(s) agropecuário(s)", "1", id))%>%
+  dplyr::mutate(id = ifelse(etapa == "Transporte do(s) produto(s) agropecuário(s) para a base de apoio", "2", id))%>%
+  dplyr::mutate(id = ifelse(etapa == "Recebimento e armazenamento do(s) produto(s) agropecuário(s) na base de apoio", "3", id))%>%
+  dplyr::mutate(id = ifelse(etapa == "Transporte do(s) produto(s) agropecuário(s) entre bases de apoio", "5", id))%>%
+  dplyr::mutate(id = ifelse(etapa == "Recebimento e armazenamento do(s) produto(s) agropecuário(s) entre bases de apoio", "6", id))%>%
+  mutate(id = as.numeric(id))%>%
+  arrange(id)%>%
+  dplyr::select(-id)
+
+nomes_colunas_tabela_1 = c("Etapa",
+                           "Código do produto agropecuário",
+                           "Data",
+                           "Hora",
+                           "Responsável",
+                           "Assinatura",
+                           "Código do equipamento",
+                           "Temperatura mínima(°C)", 
+                           "Temperatura máxima(°C)", 
+                           "Temperatura de entrega/recebimento(°C)", 
+                           "Outras informações")
+
+assinatura_tabela_1 = tabela_1%>%
+  select(etapa, assinatura)
+
+tabela_1 = tabela_1 %>%
+  mutate(assinatura = "")
+
+
+tabela_2 = dados %>%
+ 
+  dplyr::filter(amostra == params$amostra,
+                custodia == "transporte dos produtos agropecuários e recebimento em laboratório", 
+                etapa %in% c("Entrega do(s) produto(s) agropecuário(s) para o transporte até o laboratório",# Etapa 06
+                             "Recebimento do(s) produto(s) agropecuário(s) para o transporte até o laboratório",# Etapa 07
+                             "Transporte do(s) produto(s) agropecuário(s) para o laboratório",# Etapa 08
+                             "Entrega do(s) produto(s) agropecuário(s) transportados(s)",# Etapa 09
+                             "Recebimento do(s) produto(s) agropecuário(s) transportados(s)",# Etapa 10
+                             "Cadastro e armazenamento do(s) produto(s) agropecuário(s) no laboratório",# Etapa 11
+                             "Transferência de equipamento de armazenamento do(s) produto(s) agropecuário(s)"))%>% # Etapa 12
+ dplyr::select(etapa, alimento, data, hora, responsavel, assinatura, cod_equipamento_armazenamento,
+               temperatura_min, temperatura_max, temperatura_entrega_recebimento, outras_informacoes)%>%
+  dplyr::mutate(id="")%>%
+  dplyr::mutate(id = ifelse(etapa == "Entrega do(s) produto(s) agropecuário(s) para o transporte até o laboratório", "1", id))%>%
+  dplyr::mutate(id = ifelse(etapa == "Recebimento do(s) produto(s) agropecuário(s) para o transporte até o laboratório", "2", id))%>%
+  dplyr::mutate(id = ifelse(etapa == "Transporte do(s) produto(s) agropecuário(s) para o laboratório", "3", id))%>%
+  dplyr::mutate(id = ifelse(etapa == "Entrega do(s) produto(s) agropecuário(s) transportados(s)", "4", id))%>%
+  dplyr::mutate(id = ifelse(etapa == "Recebimento do(s) produto(s) agropecuário(s) transportados(s)", "5", id))%>%
+  dplyr::mutate(id = ifelse(etapa == "Cadastro e armazenamento do(s) produto(s) agropecuário(s) no laboratório", "6", id))%>%
+  dplyr::mutate(id = ifelse(etapa == "Transferência de equipamento de armazenamento do(s) produto(s) agropecuário(s)", "7", id))%>%
+  dplyr::mutate(id = as.numeric(id))%>%
+  dplyr::arrange(id)%>%
+  dplyr::select(-id)
+
+nomes_colunas_tabela_2 = c("Etapa", 
+                           "Código do produto agropecuário",
+                           "Data", 
+                           "Hora", 
+                           "Responsável", 
+                           "Assinatura", 
+                           "Código do equipamento", 
+                           "Temperatura mínima(°C)", 
+                           "Temperatura máxima(°C)", 
+                           "Temperatura de entrega/recebimento(°C)", 
+                           "Outras informações")
+
+assinatura_tabela_2 = tabela_2%>%
+  select(etapa, assinatura)
+
+tabela_2 = tabela_2 %>%
+  mutate(assinatura = "")
+
+tabela_3 = dados %>%
+
+  dplyr::filter(amostra == params$amostra, 
+                custodia == "Atividades em laboratório",
+                etapa %in% c("Geração de amostra e armazenamento",# Etapa 13
+                             "Transferência de equipamento de armazenamento de amostra",# Etapa 14
+                             "Geração de contraprova e armazenamento",# Etapa 15
+                             "Transferência de equipamento de armazenamento de contraprova",# Etapa 16
+                             "Liofilização da amostra e armazenamento",# Etapa 17
+                             "Preparo da amostra e armazenamento",# Etapa 18
+                             "Análise da amostra",# Etapa 19
+                             "Descarte da amostra"))%>% # Etapa 20
+  dplyr::select(etapa, subs_quimica, data, hora, responsavel, assinatura, cod_equipamento_armazenamento, 
+                temperatura_min, temperatura_max, temperatura_entrega_recebimento, outras_informacoes)%>%
+  dplyr::mutate(id="")%>%
+  dplyr::mutate(id = ifelse(etapa == "Geração de amostra e armazenamento", "1", id))%>%
+  dplyr::mutate(id = ifelse(etapa == "Transferência de equipamento de armazenamento de amostra", "2", id))%>%
+  dplyr::mutate(id = ifelse(etapa == "Geração de contraprova e armazenamento", "3", id))%>%
+  dplyr::mutate(id = ifelse(etapa == "Transferência de equipamento de armazenamento de contraprova", "4", id))%>%
+  dplyr::mutate(id = ifelse(etapa == "Liofilização da amostra e armazenamento", "5", id))%>%
+  dplyr::mutate(id = ifelse(etapa == "Preparo da amostra e armazenamento", "6", id))%>%
+  dplyr::mutate(id = ifelse(etapa == "Análise da amostra", "7", id))%>%
+  dplyr::mutate(id = ifelse(etapa == "Descarte da amostra", "8", id))%>%
+  dplyr::mutate(id = as.numeric(id))%>%
+  dplyr::arrange(id)%>%
+  dplyr::select(-id)
+
+nomes_colunas_tabela_3 = c("Etapa", 
+                           "Substância química", 
+                           "Data", 
+                           "Hora", 
+                           "Responsável", 
+                           "Assinatura", 
+                           "Código Equipamento", 
+                           "Temperatura mínima(°C)", 
+                           "Temperatura máxima(°C)", 
+                           "Temperatura de entrega/recebimento(°C)", 
+                           "Outras informações")
+
+assinatura_tabela_3 = tabela_3%>%
+  select(etapa, assinatura)
+
+tabela_3 = tabela_3 %>%
+  mutate(assinatura = "")
+
+tabela_4 = dados %>%
+
+  dplyr::filter(amostra == params$amostra,
+                custodia == "análises Bioagri",
+                etapa %in% c("Envio da(s) amostra(s) para transporte", # Etapa 21
+                             "Transporte da(s) amostra(s)", # Etapa 22
+                             "Entrega da(s) amostra(s) transportada(s)", # Etapa 23
+                             "Recebimento da(s) amostra(s) transportada(s)", # Etapa 24
+                             "Cadastro da amostra e armazenamento", # Etapa 25
+                             "Preparo da amostra e armazenamento", # Etapa 26
+                             "Análise da amostra", # Etapa 27
+                             "Descarte da amostra"))%>% # Etapa 28
+ dplyr:: select(etapa, subs_quimica, data, hora, responsavel, assinatura, cod_equipamento_armazenamento, 
+                temperatura_min, temperatura_max,temperatura_entrega_recebimento,outras_informacoes)%>%
+  dplyr::mutate(id="")%>%
+  dplyr::mutate(id = ifelse(etapa == "Envio da(s) amostra(s) para transporte", "1", id))%>%
+  dplyr::mutate(id = ifelse(etapa == "Transporte da(s) amostra(s)", "2", id))%>%
+  dplyr::mutate(id = ifelse(etapa == "Entrega da(s) amostra(s) transportada(s)", "3", id))%>%
+  dplyr::mutate(id = ifelse(etapa == "Recebimento da(s) amostra(s) transportada(s)", "4", id))%>%
+  dplyr::mutate(id = ifelse(etapa == "Cadastro da amostra e armazenamento", "5", id))%>%
+  dplyr::mutate(id = ifelse(etapa == "Preparo da amostra e armazenamento", "6", id))%>%
+  dplyr::mutate(id = ifelse(etapa == "Análise da amostra", "7", id))%>%
+  dplyr::mutate(id = ifelse(etapa == "Descarte da amostra", "8", id))%>%
+  dplyr::mutate(id = as.numeric(id))%>%
+  dplyr::arrange(id)%>%
+  dplyr::select(-id)
+
+nomes_colunas_tabela_4 = c("Etapa", 
+                           "Substância química", 
+                           "Data", 
+                           "Hora", 
+                           "Responsável", 
+                           "Assinatura", 
+                           "Código equipamento", 
+                           "Temperatura mínima(°C)", 
+                           "Temperatura máxima(°C)", 
+                           "Temperatura de entrega/recebimento(°C)", 
+                           "Outras informações")
+
+assinatura_tabela_4 = tabela_4%>%
+  select(etapa, assinatura)
+
+tabela_4 = tabela_4 %>%
+  mutate(assinatura = "")
+
+tabela_5 = dados %>%
+  dplyr::filter(amostra == params$amostra,
+                custodia == "análises CQA",
+                etapa %in% c("Envio da(s) amostra(s) para transporte", # Etapa 29
+                             "Transporte da(s) amostra(s)", # Etapa 30
+                             "Entrega da(s) amostra(s) transportada(s)", # Etapa 31
+                             "Recebimento da(s) amostra(s) transportada(s)", # Etapa 32
+                             "Cadastro da amostra e armazenamento", # Etapa 33
+                             "Preparo da amostra e armazenamento",# Etapa 34
+                             "Análise da amostra",# Etapa 35
+                             "Descarte da amostra")) %>% # Etapa 36
+  dplyr:: select(etapa, subs_quimica, data, hora, responsavel, assinatura, cod_equipamento_armazenamento,
+                 temperatura_min, temperatura_max, temperatura_entrega_recebimento, outras_informacoes)%>%
+  dplyr::mutate(id="")%>%
+  dplyr::mutate(id = ifelse(etapa == "Envio da(s) amostra(s) para transporte", "1", id))%>%
+  dplyr::mutate(id = ifelse(etapa == "Transporte da(s) amostra(s)", "2", id))%>%
+  dplyr::mutate(id = ifelse(etapa == "Entrega da(s) amostra(s) transportada(s)", "3", id))%>%
+  dplyr::mutate(id = ifelse(etapa == "Recebimento da(s) amostra(s) transportada(s)", "4", id))%>%
+  dplyr::mutate(id = ifelse(etapa == "Cadastro da amostra e armazenamento", "5", id))%>%
+  dplyr::mutate(id = ifelse(etapa == "Preparo da amostra e armazenamento", "6", id))%>%
+  dplyr::mutate(id = ifelse(etapa == "Análise da amostra", "7", id))%>%
+  dplyr::mutate(id = ifelse(etapa == "Descarte da amostra", "8", id))%>%
+  dplyr::mutate(id = as.numeric(id))%>%
+  dplyr::arrange(id)%>%
+  dplyr::select(-id)
+
+nomes_colunas_tabela_5 = c("Etapa", 
+                           "Substância química", 
+                           "Data", 
+                           "Hora", 
+                           "Responsável", 
+                           "Assinatura", 
+                           "Código equipamento", 
+                           "Temperatura mínima(°C)", 
+                           "Temperatura máxima(°C)", 
+                           "Temperatura de entrega/recebimento(°C)", 
+                           "Outras informações")
+
+assinatura_tabela_5 = tabela_5%>%
+  select(etapa, assinatura)
+
+tabela_5 = tabela_5 %>%
+  mutate(assinatura = "")
+
+```
+
+Informações da Amostra
+
+Amostra: `r amostra`
+
+Ponto de coleta: `r ponto`
+
+Tipo de amostra: `r tipo`
+
+Tipo de alimento: `r alimento`
+
+Grupo: `r grupo`
+
+```{r tabela_1, echo=FALSE, include=F, fig.pos='H', warning = FALSE, message = FALSE}
+
+tabela_1  = kableExtra::kbl (tabela_1, caption = "Atividades de campo", booktabs = T, longtable = T, 
+                             col.names = nomes_colunas_tabela_1, align = "c")%>%
+  kable_styling(font_size = 10, latex_options = c("repeat_header", "HOLD_position"), position = "center")%>%
+  column_spec (1, bold = T, width = "4cm")%>%
+  column_spec (2, bold = T, width = "6cm")%>%
+  column_spec (5, bold = T, width = "4cm")%>%
+  column_spec (6, width = "2cm", image = spec_image(assinatura_tabela_1$assinatura, 150, 150))%>%
+  column_spec (7, bold = T, width = "2cm")%>%
+  column_spec (8, bold = T, width = "2cm")%>%
+  column_spec (9, bold = T, width = "2cm")%>%
+  column_spec (10, bold = T, width = "4cm")%>%
+  column_spec (11, bold = T, width = "4cm")
+  
+```
+
+`r tabela_1`
+
+```{r tabela_2, echo=FALSE, fig.pos='H', warning = FALSE, message = FALSE}
+
+tabela_2 = kableExtra::kbl (tabela_2, caption = "Transporte dos produtos agropecuários e recebimento em laboratório", booktabs = T, longtable = T, 
+                            col.names =    nomes_colunas_tabela_2, align = "c")%>%
+  kable_styling(font_size = 10, latex_options = c("repeat_header", "HOLD_position"), position = "center")%>%
+  column_spec (1, bold = T, width = "4cm")%>%
+  column_spec (2, bold = T, width = "6cm")%>%
+  column_spec (5, bold = T, width = "4cm")%>%
+  column_spec (6, width = "2cm", image = spec_image(assinatura_tabela_2$assinatura, 150, 150))%>%
+  column_spec (7, bold = T, width = "2cm")%>%
+  column_spec (8, bold = T, width = "2cm")%>%
+  column_spec (9, bold = T, width = "2cm")%>%
+  column_spec (10, bold = T, width = "4cm")%>%
+  column_spec (11, bold = T, width = "4cm")
+
+```
+
+`r tabela_2`
+
+```{r tabela_3, echo=FALSE, fig.pos='H', warning = FALSE, message = FALSE}
+
+tabela_3 = kableExtra::kbl (tabela_3, caption = "Atividades em laboratório", booktabs = T, longtable = T, 
+                            col.names = nomes_colunas_tabela_3, align = "c")%>%
+  kable_styling(font_size = 10, latex_options = c("repeat_header", "HOLD_position"), position = "center")%>%
+  column_spec (1, bold = T, width = "4cm")%>%
+  column_spec (2, bold = T, width = "6cm")%>%
+  column_spec (5, bold = T, width = "4cm")%>%
+  column_spec (6, width = "2cm", image = spec_image(assinatura_tabela_3$assinatura, 150, 150))%>%
+  column_spec (7, bold = T, width = "2cm")%>%
+  column_spec (8, bold = T, width = "2cm")%>%
+  column_spec (9, bold = T, width = "2cm")%>%
+  column_spec (10, bold = T, width = "4cm")%>%
+  column_spec (11, bold = T, width = "4cm")
+
+```
+
+`r tabela_3`
+
+```{r tabela_4, echo=FALSE, fig.pos='H', warning = FALSE, message = FALSE}
+
+tabela_4 = kableExtra::kbl (tabela_4, caption = "Análises Bioagri", booktabs = T, longtable = T, 
+                            col.names = nomes_colunas_tabela_4, align = "c")%>%
+  kable_styling(font_size = 10, latex_options = c("repeat_header", "HOLD_position"), position = "center")%>%
+  column_spec (1, bold = T, width = "4cm")%>%
+  column_spec (2, bold = T, width = "6cm")%>%
+  column_spec (5, bold = T, width = "4cm")%>%
+  column_spec (6, width = "2cm", image = spec_image(assinatura_tabela_4$assinatura, 150, 150))%>%
+  column_spec (7, bold = T, width = "2cm")%>%
+  column_spec (8, bold = T, width = "2cm")%>%
+  column_spec (9, bold = T, width = "2cm")%>%
+  column_spec (10, bold = T, width = "4cm")%>%
+  column_spec (11, bold = T, width = "4cm")
+
+```
+
+`r tabela_4`
+
+```{r tabela_5, echo=FALSE, fig.pos='H', warning = FALSE, message = FALSE}
+
+tabela_5 = kableExtra::kbl (tabela_5, caption = "Análises CQA", booktabs = T, longtable = T, 
+                            col.names = nomes_colunas_tabela_5, align = "c")%>%
+  kable_styling(font_size = 10, latex_options = c("repeat_header", "HOLD_position"), position = "center")%>%
+  column_spec (1, bold = T, width = "4cm")%>%
+  column_spec (2, bold = T, width = "6cm")%>%
+  column_spec (5, bold = T, width = "4cm")%>%
+  column_spec (6, width = "2cm", image = spec_image(assinatura_tabela_5$assinatura, 150, 150))%>%
+  column_spec (7, bold = T, width = "2cm")%>%
+  column_spec (8, bold = T, width = "2cm")%>%
+  column_spec (9, bold = T, width = "2cm")%>%
+  column_spec (10, bold = T, width = "4cm")%>%
+  column_spec (11, bold = T, width = "4cm")
+
+```
+
+`r tabela_5`
